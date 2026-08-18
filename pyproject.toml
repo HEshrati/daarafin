@@ -1,0 +1,38 @@
+[project]
+name = "darafin-backend"
+version = "0.1.0"
+description = "Darafin modular-monolith backend"
+requires-python = ">=3.13"
+dependencies = [
+  "boto3>=1.35", "celery>=5.4", "django>=5.1,<6", "django-filter>=24.3",
+  "django-redis>=5.4", "djangorestframework>=3.15", "djangorestframework-simplejwt>=5.3",
+  "drf-spectacular>=0.27", "opentelemetry-sdk>=1.28", "psycopg[binary]>=3.2",
+  "python-magic>=0.4.27", "redis>=5.2", "sentry-sdk[django]>=2.18", "structlog>=24.4",
+]
+
+[dependency-groups]
+dev = [
+  "factory-boy>=3.3", "hypothesis>=6.120", "mypy>=1.13", "pip-audit>=2.7",
+  "pytest>=8.3", "pytest-cov>=6", "pytest-django>=4.9", "ruff>=0.8",
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+python_files = ["test_*.py", "tests.py"]
+addopts = "--cov=apps --cov=common --cov-report=term-missing"
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+exclude = [".venv", ".uv-cache", "migrations"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.13"
+ignore_missing_imports = true
+check_untyped_defs = true
+exclude = ["migrations"]
+explicit_package_bases = true

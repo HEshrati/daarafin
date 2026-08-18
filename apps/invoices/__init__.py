@@ -1,0 +1,1 @@
+"""invoices domain application."""

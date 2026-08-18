@@ -1,0 +1,26 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: {POSTGRES_DB: darafin_test, POSTGRES_USER: darafin, POSTGRES_PASSWORD: darafin}
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U darafin" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DJANGO_SECRET_KEY: ci-only-key
+      DJANGO_SETTINGS_MODULE: config.settings.test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with: {enable-cache: true}
+      - run: uv sync --frozen --all-groups
+      - run: uv run ruff check .
+      - run: uv run mypy apps common
+      - run: uv run python manage.py makemigrations --check --dry-run
+      - run: uv run pytest
+      - run: uv run pip-audit
+      - uses: gitleaks/gitleaks-action@v2
