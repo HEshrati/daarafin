@@ -1,4 +1,7 @@
-"""Read-only queries for the onboarding domain.
+from .models import OnboardingCase
 
-Application queries must be implemented here and remain free of state changes.
-"""
+
+def cases_for_user(user):
+    return OnboardingCase.objects.filter(
+        organization__memberships__user=user, organization__memberships__is_active=True
+    ).distinct()

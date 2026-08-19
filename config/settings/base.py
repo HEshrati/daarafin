@@ -26,6 +26,12 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "apps.identity",
     "apps.organizations",
+    "common",
+    "apps.audit",
+    "apps.onboarding",
+    "apps.documents",
+    "apps.invoices",
+    "apps.facilities",
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

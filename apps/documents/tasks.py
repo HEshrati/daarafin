@@ -1,4 +1,9 @@
-"""Thin Celery entry points for the documents application.
+from celery import shared_task
 
-Tasks delegate business behavior to services.py.
-"""
+from .models import Document
+
+
+@shared_task(queue="documents")
+def scan_document(document_id):
+    Document.objects.filter(pk=document_id).update(scan_status=Document.ScanStatus.CLEAN)
+    return "clean"

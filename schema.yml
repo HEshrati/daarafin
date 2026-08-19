@@ -202,6 +202,497 @@ paths:
               schema:
                 $ref: '#/components/schemas/TokenObtainPair'
           description: ''
+  /api/v1/documents/{id}/complete:
+    post:
+      operationId: v1_documents_complete_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Complete'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Complete'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Complete'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Complete'
+          description: ''
+  /api/v1/documents/{id}/download-url:
+    get:
+      operationId: v1_documents_download_url_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Url'
+          description: ''
+  /api/v1/documents/presign:
+    post:
+      operationId: v1_documents_presign_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Presign'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Presign'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Presign'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Presign'
+          description: ''
+  /api/v1/facilities:
+    get:
+      operationId: v1_facilities_list
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Facility'
+          description: ''
+    post:
+      operationId: v1_facilities_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Facility'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Facility'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Facility'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Facility'
+          description: ''
+  /api/v1/facilities/{id}:
+    get:
+      operationId: v1_facilities_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Facility'
+          description: ''
+  /api/v1/facilities/{id}/history:
+    get:
+      operationId: v1_facilities_history_list
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Reservation'
+          description: ''
+  /api/v1/facilities/{id}/limits:
+    get:
+      operationId: v1_facilities_limits_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Facility'
+          description: ''
+  /api/v1/facilities/{id}/reserve:
+    post:
+      operationId: v1_facilities_reserve_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Reserve'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Reserve'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Reserve'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reserve'
+          description: ''
+  /api/v1/facilities/{id}/utilization:
+    get:
+      operationId: v1_facilities_utilization_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Facility'
+          description: ''
+  /api/v1/invoices:
+    get:
+      operationId: v1_invoices_list
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: مقدار نشانگر صفحه‌بندی.
+        schema:
+          type: string
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedInvoiceList'
+          description: ''
+    post:
+      operationId: v1_invoices_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Invoice'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Invoice'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Invoice'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+          description: ''
+  /api/v1/invoices/{id}:
+    get:
+      operationId: v1_invoices_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+          description: ''
+    put:
+      operationId: v1_invoices_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Invoice'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Invoice'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Invoice'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+          description: ''
+    patch:
+      operationId: v1_invoices_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedInvoice'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedInvoice'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedInvoice'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+          description: ''
+    delete:
+      operationId: v1_invoices_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/invoices/{id}/dispute:
+    post:
+      operationId: v1_invoices_dispute_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Dispute'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Dispute'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Dispute'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dispute'
+          description: ''
+  /api/v1/invoices/{id}/verify:
+    post:
+      operationId: v1_invoices_verify_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Invoice'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Invoice'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Invoice'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+          description: ''
+  /api/v1/invoices/bulk-commit:
+    post:
+      operationId: v1_invoices_bulk_commit_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Bulk'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Bulk'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Bulk'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bulk'
+          description: ''
+  /api/v1/invoices/bulk-preview:
+    post:
+      operationId: v1_invoices_bulk_preview_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Bulk'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Bulk'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Bulk'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bulk'
+          description: ''
   /api/v1/me:
     get:
       operationId: v1_me_retrieve
@@ -215,6 +706,109 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Me'
+          description: ''
+  /api/v1/onboarding/{id}/decision:
+    post:
+      operationId: v1_onboarding_decision_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Decision'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Decision'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Decision'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Decision'
+          description: ''
+  /api/v1/onboarding/{id}/submit:
+    post:
+      operationId: v1_onboarding_submit_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Case'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Case'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Case'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Case'
+          description: ''
+  /api/v1/onboarding/cases/:
+    get:
+      operationId: v1_onboarding_cases_list
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Case'
+          description: ''
+    post:
+      operationId: v1_onboarding_cases_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Case'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Case'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Case'
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Case'
           description: ''
   /api/v1/organizations:
     get:
@@ -443,6 +1037,199 @@ components:
       required:
       - iban
       - id
+    Bulk:
+      type: object
+      properties:
+        rows:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+      required:
+      - rows
+    Case:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        organization:
+          type: integer
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/CaseStatusEnum'
+          readOnly: true
+        reason:
+          type: string
+          readOnly: true
+        requested_by:
+          type: integer
+          readOnly: true
+        reviewed_by:
+          type: integer
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - organization
+      - reason
+      - requested_by
+      - reviewed_by
+      - status
+      - updated_at
+    CaseStatusEnum:
+      enum:
+      - draft
+      - submitted
+      - under_review
+      - need_changes
+      - approved
+      - rejected
+      - suspended
+      type: string
+      description: |-
+        * `draft` - پیش‌نویس
+        * `submitted` - ارسال‌شده
+        * `under_review` - در بررسی
+        * `need_changes` - نیازمند اصلاح
+        * `approved` - تأیید
+        * `rejected` - رد
+        * `suspended` - تعلیق
+    Complete:
+      type: object
+      properties:
+        checksum_sha256:
+          type: string
+      required:
+      - checksum_sha256
+    Decision:
+      type: object
+      properties:
+        decision:
+          $ref: '#/components/schemas/DecisionEnum'
+        reason:
+          type: string
+      required:
+      - decision
+    DecisionEnum:
+      enum:
+      - approved
+      - rejected
+      - need_changes
+      type: string
+      description: |-
+        * `approved` - approved
+        * `rejected` - rejected
+        * `need_changes` - need_changes
+    Dispute:
+      type: object
+      properties:
+        reason:
+          type: string
+        attachment_id:
+          type: integer
+      required:
+      - reason
+    Facility:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        lender:
+          type: integer
+        borrower:
+          type: integer
+        limit:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,20}(?:\.\d{0,4})?$
+        utilized_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,20}(?:\.\d{0,4})?$
+          readOnly: true
+        available:
+          type: string
+          readOnly: true
+        expiry:
+          type: string
+          format: date
+      required:
+      - available
+      - borrower
+      - expiry
+      - id
+      - lender
+      - limit
+      - utilized_amount
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        issuer:
+          type: integer
+        buyer:
+          type: integer
+        number:
+          type: string
+          maxLength: 100
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,20}(?:\.\d{0,4})?$
+        due_date:
+          type: string
+          format: date
+        status:
+          allOf:
+          - $ref: '#/components/schemas/InvoiceStatusEnum'
+          readOnly: true
+        version:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - amount
+      - buyer
+      - created_at
+      - due_date
+      - id
+      - issuer
+      - number
+      - status
+      - version
+    InvoiceStatusEnum:
+      enum:
+      - draft
+      - submitted
+      - verified
+      - disputed
+      - financed
+      - settled
+      type: string
+      description: |-
+        * `draft` - پیش‌نویس
+        * `submitted` - ارسال
+        * `verified` - تأیید
+        * `disputed` - اختلاف
+        * `financed` - تأمین
+        * `settled` - تسویه
     Me:
       type: object
       properties:
@@ -506,7 +1293,7 @@ components:
           maxLength: 20
         status:
           allOf:
-          - $ref: '#/components/schemas/StatusEnum'
+          - $ref: '#/components/schemas/OrganizationStatusEnum'
           readOnly: true
         risk_tier:
           type: integer
@@ -518,6 +1305,64 @@ components:
       - national_id
       - status
       - type
+    OrganizationStatusEnum:
+      enum:
+      - active
+      - suspended
+      type: string
+      description: |-
+        * `active` - فعال
+        * `suspended` - معلق
+    PaginatedInvoiceList:
+      type: object
+      required:
+      - results
+      properties:
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cD00ODY%3D"
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cj0xJnA9NDg3
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Invoice'
+    PatchedInvoice:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        issuer:
+          type: integer
+        buyer:
+          type: integer
+        number:
+          type: string
+          maxLength: 100
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,20}(?:\.\d{0,4})?$
+        due_date:
+          type: string
+          format: date
+        status:
+          allOf:
+          - $ref: '#/components/schemas/InvoiceStatusEnum'
+          readOnly: true
+        version:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
     PatchedOrganization:
       type: object
       properties:
@@ -534,12 +1379,58 @@ components:
           maxLength: 20
         status:
           allOf:
-          - $ref: '#/components/schemas/StatusEnum'
+          - $ref: '#/components/schemas/OrganizationStatusEnum'
           readOnly: true
         risk_tier:
           type: integer
           maximum: 32767
           minimum: 0
+    Presign:
+      type: object
+      properties:
+        case_id:
+          type: integer
+        filename:
+          type: string
+        mime:
+          type: string
+        size:
+          type: integer
+        document_type:
+          type: string
+      required:
+      - case_id
+      - document_type
+      - filename
+      - mime
+      - size
+    Reservation:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,20}(?:\.\d{0,4})?$
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - amount
+      - created_at
+      - id
+    Reserve:
+      type: object
+      properties:
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,20}(?:\.\d{0,4})?$
+      required:
+      - amount
     RoleEnum:
       enum:
       - owner
@@ -567,14 +1458,6 @@ components:
       required:
       - authenticated_at
       - current
-    StatusEnum:
-      enum:
-      - active
-      - suspended
-      type: string
-      description: |-
-        * `active` - فعال
-        * `suspended` - معلق
     TokenObtainPair:
       type: object
       properties:
@@ -620,6 +1503,17 @@ components:
         * `manufacturer` - تولیدکننده
         * `distributor` - پخش
         * `pharmacy` - داروخانه
+    Url:
+      type: object
+      properties:
+        download_url:
+          type: string
+          format: uri
+        expires_in:
+          type: integer
+      required:
+      - download_url
+      - expires_in
   securitySchemes:
     jwtAuth:
       type: http

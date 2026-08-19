@@ -98,4 +98,6 @@ docker compose exec web celery -A config call darafin.ping
 
 `GET /health/` checks PostgreSQL, Redis, and MinIO and returns HTTP 200 only when all three are reachable. OpenAPI is available at `/api/schema/` and Swagger UI at `/api/docs/`.
 
+Week-two APIs add onboarding cases and decisions, private KYC document presigning, invoice lifecycle/bulk operations, and facility reservation/history under `/api/v1/`. Financial mutations use decimal strings, audit hashes, maker-checker rules, optimistic versions, and idempotency keys.
+
 Never put real credentials in source control. Base settings require secrets from the environment; local/test fallbacks are explicitly insecure and production forces `DEBUG=False`.
