@@ -23,7 +23,7 @@ docker compose -f compose.fullstack.yaml up -d --build
 
 The frontend is available at `http://localhost:3000` and the API at
 `http://localhost:8000`. The frontend image is published as
-`ghcr.io/setyhoseini81/darafin-frontend:latest`. If the package is private, authenticate with
+`ghcr.io/heshrati/darafin-frontend:latest`. If the package is private, authenticate with
 GitHub Container Registry before pulling it.
 
 Set `FRONTEND_AUTH_SECRET` to a strong environment-specific value outside local development.
