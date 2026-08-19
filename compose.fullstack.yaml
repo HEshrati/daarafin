@@ -1,0 +1,27 @@
+name: backend
+
+include:
+  - path: ./compose.yaml
+
+services:
+  frontend:
+    image: ghcr.io/setyhoseini81/darafin-frontend:latest
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+        NEXT_PUBLIC_APP_URL: http://localhost:3000
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      API_URL: http://web:8000/api/v1
+      AUTH_URL: http://localhost:3000
+      AUTH_SECRET: ${FRONTEND_AUTH_SECRET:-local-docker-only-change-before-production}
+    init: true
+    ports:
+      - "3000:3000"
+    depends_on:
+      web:
+        condition: service_started
+    restart: unless-stopped

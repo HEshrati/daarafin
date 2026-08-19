@@ -96,6 +96,9 @@ docker compose exec web celery -A config beat -l INFO
 docker compose exec web celery -A config call darafin.ping
 ```
 
+To run the frontend and backend together or securely transfer PostgreSQL/MinIO state to another
+developer, see [`docs/docker-sharing.md`](docs/docker-sharing.md).
+
 `GET /health/` checks PostgreSQL, Redis, and MinIO and returns HTTP 200 only when all three are reachable. OpenAPI is available at `/api/schema/` and Swagger UI at `/api/docs/`.
 
 Week-two APIs add onboarding cases and decisions, private KYC document presigning, invoice lifecycle/bulk operations, and facility reservation/history under `/api/v1/`. Financial mutations use decimal strings, audit hashes, maker-checker rules, optimistic versions, and idempotency keys.
