@@ -83,7 +83,7 @@ Prerequisites are Docker Desktop with Compose v2 and Git. Clone the repository, 
 docker compose up --build
 ```
 
-The stack starts PostgreSQL 16, Redis 7, versioned MinIO document storage, Django web, the four-queue Celery worker, and Celery beat. In local settings the entrypoint applies migrations before starting web/worker/beat. Production never auto-migrates.
+The stack starts PostgreSQL 16, Redis 7, versioned MinIO document storage, Django web, the four-queue Celery worker, and Celery beat. In local settings only the web service applies migrations before it starts; worker and beat never race it. Production never auto-migrates.
 
 Useful commands:
 

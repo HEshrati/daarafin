@@ -11,7 +11,7 @@ Implemented organization onboarding state transitions, auditable KYC decisions, 
 
 ## Carried debt
 
-- Replace mock document scanning with ClamAV and verify checksum by streaming the uploaded S3 object.
+- Replace the mock malware verdict with ClamAV; SHA-256 is already verified by streaming the uploaded object.
 - Persist bulk-preview tokens with expiry instead of accepting validated rows again at commit.
 - Add a dedicated dispute-resolution/credit-note workflow and notification templates.
 - Run concurrency tests in CI against PostgreSQL with parallel connections; SQLite tests only verify service semantics.

@@ -32,7 +32,13 @@ class Invoice(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=("issuer", "number"), name="unique_issuer_invoice_number"
-            )
+            ),
+            models.CheckConstraint(
+                condition=models.Q(amount__gt=0), name="invoice_amount_positive"
+            ),
+            models.CheckConstraint(
+                condition=~models.Q(issuer=models.F("buyer")), name="invoice_parties_differ"
+            ),
         ]
         indexes = [models.Index(fields=("buyer", "status", "due_date"))]
 

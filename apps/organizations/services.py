@@ -3,10 +3,34 @@ from django.db import transaction
 from .models import Organization, UserMembership
 
 DEFAULT_ROLE_SCOPES = {
-    "owner": ["manage_organization", "manage_members", "view_bank_accounts", "change_bank_account"],
-    "operator": ["create_invoice", "view_invoice"],
-    "approver": ["approve_financing", "reject_financing", "view_invoice"],
-    "risk_expert": ["view_risk", "assess_risk"],
+    "owner": [
+        "manage_organization",
+        "manage_members",
+        "manage_onboarding",
+        "view_bank_accounts",
+        "change_bank_account",
+        "create_invoice",
+        "dispute_invoice",
+        "view_invoice",
+        "manage_facility",
+        "reserve_facility",
+        "view_facility",
+    ],
+    "operator": [
+        "create_invoice",
+        "dispute_invoice",
+        "view_invoice",
+        "reserve_facility",
+        "view_facility",
+    ],
+    "approver": ["approve_financing", "reject_financing", "verify_invoice", "view_invoice"],
+    "risk_expert": [
+        "view_risk",
+        "assess_risk",
+        "review_onboarding",
+        "verify_invoice",
+        "view_invoice",
+    ],
     "bank_finance": ["view_ledger", "approve_payment"],
     "support": ["view_support_case"],
 }
@@ -19,7 +43,7 @@ def create_organization(*, actor, data):
         user=actor,
         organization=organization,
         role=UserMembership.Role.OWNER,
-        scopes=["manage_organization", "manage_members", "view_bank_accounts"],
+        scopes=DEFAULT_ROLE_SCOPES["owner"].copy(),
     )
     return organization
 

@@ -44,3 +44,11 @@ def test_invalid_password_is_rejected():
 
 def test_me_requires_authentication():
     assert APIClient().get(reverse("me")).status_code == 401
+
+
+def test_invalid_correlation_id_is_replaced():
+    supplied = "x" * 65
+    response = APIClient().get(reverse("me"), HTTP_X_CORRELATION_ID=supplied)
+
+    assert response.headers["X-Correlation-ID"] != supplied
+    assert len(response.headers["X-Correlation-ID"]) == 36

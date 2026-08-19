@@ -6,8 +6,8 @@ from apps.organizations.models import Organization
 
 class CaseCreateSerializer(serializers.Serializer):
     organization_type = serializers.ChoiceField(choices=Organization.Type.choices)
-    national_id = serializers.CharField()
-    name = serializers.CharField()
+    national_id = serializers.RegexField(r"^\d{10,20}$")
+    name = serializers.CharField(max_length=255, trim_whitespace=True)
 
 
 class CaseSerializer(serializers.ModelSerializer):

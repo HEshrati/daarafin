@@ -3,8 +3,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.facilities import services
-from apps.facilities.models import Facility, FacilityReservation
+from apps.facilities import selectors, services
+from apps.facilities.models import FacilityReservation
+from common.permissions import ensure_active_scope
 
 from .serializers import FacilitySerializer, ReservationSerializer, ReserveSerializer
 
@@ -14,10 +15,19 @@ class FacilityListCreateView(generics.ListCreateAPIView):
     permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
-        return (
-            Facility.objects.filter(borrower__memberships__user=self.request.user)
-            | Facility.objects.filter(lender__memberships__user=self.request.user)
-        ).distinct()
+        return selectors.facilities_for_user(self.request.user)
+
+    def perform_create(self, serializer):
+        ensure_active_scope(
+            user=self.request.user,
+            organization_id=serializer.validated_data["lender"].pk,
+            scope="manage_facility",
+        )
+        serializer.instance = services.create_facility(
+            actor=self.request.user,
+            data=serializer.validated_data,
+            correlation_id=getattr(self.request, "correlation_id", ""),
+        )
 
 
 class FacilityDetailView(generics.RetrieveAPIView):
@@ -25,10 +35,7 @@ class FacilityDetailView(generics.RetrieveAPIView):
     permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
-        return (
-            Facility.objects.filter(borrower__memberships__user=self.request.user)
-            | Facility.objects.filter(lender__memberships__user=self.request.user)
-        ).distinct()
+        return selectors.facilities_for_user(self.request.user)
 
 
 class ReserveView(APIView):
@@ -37,15 +44,23 @@ class ReserveView(APIView):
 
     def post(self, r, pk):
         facility = generics.get_object_or_404(
-            Facility.objects.filter(borrower__memberships__user=r.user).distinct(), pk=pk
+            selectors.facilities_for_user(r.user),
+            pk=pk,
         )
         s = ReserveSerializer(data=r.data)
         s.is_valid(raise_exception=True)
+        ensure_active_scope(
+            user=r.user,
+            organization_id=facility.borrower_id,
+            scope="reserve_facility",
+        )
         return Response(
             services.reserve_facility(
                 facility_id=facility.pk,
                 amount=s.validated_data["amount"],
                 key=r.headers.get("Idempotency-Key", ""),
+                actor=r.user,
+                correlation_id=getattr(r, "correlation_id", ""),
             )
         )
 
@@ -57,5 +72,5 @@ class HistoryView(generics.ListAPIView):
     def get_queryset(self):
         return FacilityReservation.objects.filter(
             facility_id=self.kwargs["pk"],
-            facility__borrower__memberships__user=self.request.user,
-        ).distinct()
+            facility__in=selectors.facilities_for_user(self.request.user),
+        )

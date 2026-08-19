@@ -1,3 +1,4 @@
+import re
 import uuid
 
 import structlog
@@ -10,7 +11,12 @@ class CorrelationIdMiddleware:
 
     def __call__(self, request):
         clear_contextvars()
-        correlation_id = request.headers.get("X-Correlation-ID") or str(uuid.uuid4())
+        requested_id = request.headers.get("X-Correlation-ID", "")
+        correlation_id = (
+            requested_id
+            if re.fullmatch(r"[A-Za-z0-9._:-]{1,64}", requested_id)
+            else str(uuid.uuid4())
+        )
         request.correlation_id = correlation_id
         bind_contextvars(correlation_id=correlation_id)
         structlog.get_logger().info("request.started", method=request.method, path=request.path)
