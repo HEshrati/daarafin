@@ -20,6 +20,8 @@ STATUS_LABELS = {
 }
 
 PERSONA_SUPPLIER = "supplier"
+PERSONA_DISTRIBUTOR = "distributor"
+PERSONA_PHARMACY = "pharmacy"
 PERSONA_BANK_APPROVER = "bank_approver"
 PERSONA_BANK_FINANCE = "bank_finance"
 
@@ -57,6 +59,7 @@ def financing_requests_for_user(user):
     ]
     return queryset.filter(
         models.Q(invoice__issuer_id__in=organization_ids)
+        | models.Q(invoice__buyer_id__in=organization_ids)
         | models.Q(facility__lender_id__in=organization_ids)
     ).distinct()
 
@@ -96,17 +99,15 @@ def resolve_dashboard_persona(user) -> tuple[str | None, UserMembership | None]:
             UserMembership.Role.RISK_EXPERT,
         }:
             return PERSONA_BANK_APPROVER, membership
+
     for membership in memberships:
-        org = membership.organization
-        if org.type in {
-            Organization.Type.MANUFACTURER,
-            Organization.Type.DISTRIBUTOR,
-            Organization.Type.PHARMACY,
-        } and membership.role in {
-            UserMembership.Role.OWNER,
-            UserMembership.Role.OPERATOR,
-        }:
+        org_type = membership.organization.type
+        if org_type == Organization.Type.MANUFACTURER:
             return PERSONA_SUPPLIER, membership
+        if org_type == Organization.Type.DISTRIBUTOR:
+            return PERSONA_DISTRIBUTOR, membership
+        if org_type == Organization.Type.PHARMACY:
+            return PERSONA_PHARMACY, membership
 
     membership = memberships[0]
     if membership.organization.type == Organization.Type.BANK:
@@ -134,6 +135,12 @@ def _month_label(value: date) -> str:
     return f"{value.year}/{value.month:02d}"
 
 
+def _normalize_month(value) -> date:
+    if hasattr(value, "date"):
+        value = value.date()
+    return date(value.year, value.month, 1)
+
+
 def build_dashboard_for_user(user) -> dict:
     persona, membership = resolve_dashboard_persona(user)
     if persona is None or membership is None:
@@ -146,13 +153,17 @@ def build_dashboard_for_user(user) -> dict:
 
     requests = financing_requests_for_user(user)
     if persona == PERSONA_SUPPLIER:
-        return _supplier_dashboard(user=user, membership=membership, requests=requests)
+        return _supplier_dashboard(membership=membership, requests=requests)
+    if persona == PERSONA_DISTRIBUTOR:
+        return _distributor_dashboard(membership=membership, requests=requests)
+    if persona == PERSONA_PHARMACY:
+        return _pharmacy_dashboard(membership=membership, requests=requests)
     if persona == PERSONA_BANK_APPROVER:
-        return _approver_dashboard(user=user, membership=membership, requests=requests)
-    return _finance_dashboard(user=user, membership=membership, requests=requests)
+        return _approver_dashboard(membership=membership, requests=requests)
+    return _finance_dashboard(membership=membership, requests=requests)
 
 
-def _supplier_dashboard(*, user, membership, requests) -> dict:
+def _supplier_dashboard(*, membership, requests) -> dict:
     org = membership.organization
     org_requests = requests.filter(invoice__issuer_id=org.id)
     facilities = Facility.objects.filter(borrower_id=org.id)
@@ -176,10 +187,7 @@ def _supplier_dashboard(*, user, membership, requests) -> dict:
     month_starts = _month_starts(6)
     first_month = month_starts[0]
     monthly = {
-        row["month"].date().replace(day=1) if hasattr(row["month"], "date") else row["month"]: row[
-            "amount"
-        ]
-        or Decimal("0")
+        _normalize_month(row["month"]): row["amount"] or Decimal("0")
         for row in org_requests.filter(
             status=FinancingRequest.Status.DISBURSED, updated_at__gte=first_month
         )
@@ -247,7 +255,191 @@ def _supplier_dashboard(*, user, membership, requests) -> dict:
     }
 
 
-def _approver_dashboard(*, user, membership, requests) -> dict:
+def _distributor_dashboard(*, membership, requests) -> dict:
+    org = membership.organization
+    # پخش هم به‌عنوان صادرکننده فاکتور/متقاضی تسهیلات دیده می‌شود
+    org_requests = requests.filter(invoice__issuer_id=org.id)
+    issued_total = org_requests.aggregate(total=Sum("requested_amount"))["total"] or Decimal("0")
+    pending = org_requests.filter(
+        status__in=[FinancingRequest.Status.REQUESTED, FinancingRequest.Status.APPROVED]
+    ).count()
+    disbursed = org_requests.filter(status=FinancingRequest.Status.DISBURSED).count()
+    buyers = (
+        org_requests.exclude(invoice__buyer_id=None)
+        .values("invoice__buyer_id")
+        .distinct()
+        .count()
+    )
+
+    month_starts = _month_starts(6)
+    first_month = month_starts[0]
+    monthly = {
+        _normalize_month(row["month"]): row["amount"] or Decimal("0")
+        for row in org_requests.filter(updated_at__gte=first_month)
+        .annotate(month=TruncMonth("updated_at"))
+        .values("month")
+        .annotate(amount=Sum("requested_amount"))
+    }
+    by_buyer = (
+        org_requests.values("invoice__buyer__name")
+        .annotate(amount=Sum("requested_amount"))
+        .order_by("-amount")[:6]
+    )
+
+    recent = list(org_requests.order_by("-created_at", "-pk")[:8])
+    return {
+        "persona": PERSONA_DISTRIBUTOR,
+        "kpis": [
+            _kpi("pipeline_amount", "حجم در گردش تأمین", issued_total),
+            _kpi("active_flows", "جریان فعال", pending, unit="count"),
+            _kpi("fulfilled", "پرداخت تکمیل‌شده", disbursed, unit="count"),
+            _kpi("pharmacy_partners", "داروخانه‌های طرف‌حساب", buyers, unit="count"),
+        ],
+        "charts": [
+            {
+                "id": "fulfillment_trend",
+                "type": "line",
+                "title": "روند حجم تأمین ماهانه",
+                "series": [
+                    {
+                        "name": "حجم",
+                        "points": [
+                            {
+                                "x": _month_label(start),
+                                "y": float(monthly.get(start, Decimal("0"))),
+                            }
+                            for start in month_starts
+                        ],
+                    }
+                ],
+            },
+            {
+                "id": "volume_by_pharmacy",
+                "type": "bar",
+                "title": "حجم به تفکیک داروخانه",
+                "series": [
+                    {
+                        "name": "مبلغ",
+                        "points": [
+                            {
+                                "x": row["invoice__buyer__name"] or "نامشخص",
+                                "y": float(row["amount"] or 0),
+                            }
+                            for row in by_buyer
+                        ]
+                        or [{"x": "بدون داده", "y": 0.0}],
+                    }
+                ],
+            },
+        ],
+        "table": {
+            "title": "آخرین جریان‌های پخش",
+            "columns": [
+                {"key": "title", "title": "عنوان"},
+                {"key": "counterparty", "title": "داروخانه"},
+                {"key": "amount", "title": "مبلغ"},
+                {"key": "created_at", "title": "تاریخ"},
+                {"key": "status", "title": "وضعیت"},
+            ],
+            "rows": [_request_row(item) for item in recent],
+        },
+    }
+
+
+def _pharmacy_dashboard(*, membership, requests) -> dict:
+    org = membership.organization
+    org_requests = requests.filter(invoice__buyer_id=org.id)
+    payable = org_requests.filter(
+        status__in=[
+            FinancingRequest.Status.REQUESTED,
+            FinancingRequest.Status.APPROVED,
+            FinancingRequest.Status.DISBURSED,
+        ]
+    ).aggregate(total=Sum("requested_amount"))["total"] or Decimal("0")
+    open_count = org_requests.exclude(status=FinancingRequest.Status.REJECTED).count()
+    disbursed_amount = org_requests.filter(
+        status=FinancingRequest.Status.DISBURSED
+    ).aggregate(total=Sum("requested_amount"))["total"] or Decimal("0")
+    suppliers = (
+        org_requests.exclude(invoice__issuer_id=None)
+        .values("invoice__issuer_id")
+        .distinct()
+        .count()
+    )
+
+    status_rows = (
+        org_requests.values("status")
+        .annotate(count=Count("id"))
+        .order_by("status")
+    )
+    status_map = {row["status"]: row for row in status_rows}
+    by_supplier = (
+        org_requests.values("invoice__issuer__name")
+        .annotate(amount=Sum("requested_amount"))
+        .order_by("-amount")[:6]
+    )
+
+    recent = list(org_requests.order_by("-created_at", "-pk")[:8])
+    return {
+        "persona": PERSONA_PHARMACY,
+        "kpis": [
+            _kpi("open_invoices", "فاکتور/درخواست باز", open_count, unit="count"),
+            _kpi("payable_pipeline", "تعهد در جریان", payable),
+            _kpi("financed_received", "تأمین‌شده دریافتی", disbursed_amount),
+            _kpi("supplier_partners", "تأمین‌کنندگان فعال", suppliers, unit="count"),
+        ],
+        "charts": [
+            {
+                "id": "orders_by_status",
+                "type": "donut",
+                "title": "وضعیت درخواست‌های مرتبط",
+                "series": [
+                    {
+                        "name": "وضعیت",
+                        "points": [
+                            {
+                                "x": STATUS_LABELS[status],
+                                "y": float(status_map.get(status, {}).get("count") or 0),
+                            }
+                            for status in FinancingRequest.Status.values
+                        ],
+                    }
+                ],
+            },
+            {
+                "id": "spend_by_supplier",
+                "type": "bar",
+                "title": "حجم به تفکیک تأمین‌کننده",
+                "series": [
+                    {
+                        "name": "مبلغ",
+                        "points": [
+                            {
+                                "x": row["invoice__issuer__name"] or "نامشخص",
+                                "y": float(row["amount"] or 0),
+                            }
+                            for row in by_supplier
+                        ]
+                        or [{"x": "بدون داده", "y": 0.0}],
+                    }
+                ],
+            },
+        ],
+        "table": {
+            "title": "آخرین فاکتورهای مرتبط با داروخانه",
+            "columns": [
+                {"key": "title", "title": "عنوان"},
+                {"key": "counterparty", "title": "تأمین‌کننده"},
+                {"key": "amount", "title": "مبلغ"},
+                {"key": "created_at", "title": "تاریخ"},
+                {"key": "status", "title": "وضعیت"},
+            ],
+            "rows": [_request_row(item, counterparty="issuer") for item in recent],
+        },
+    }
+
+
+def _approver_dashboard(*, membership, requests) -> dict:
     org = membership.organization
     bank_requests = requests.filter(
         models.Q(facility__lender_id=org.id) | models.Q(invoice__issuer__isnull=False)
@@ -359,7 +551,7 @@ def _approver_dashboard(*, user, membership, requests) -> dict:
     }
 
 
-def _finance_dashboard(*, user, membership, requests) -> dict:
+def _finance_dashboard(*, membership, requests) -> dict:
     org = membership.organization
     bank_requests = requests.filter(facility__lender_id=org.id)
     if not bank_requests.exists():

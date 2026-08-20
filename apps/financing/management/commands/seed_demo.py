@@ -33,6 +33,10 @@ class Command(BaseCommand):
             raise CommandError("--password or DEMO_USER_PASSWORD is required")
 
         maker = self._user("demo-maker", "maker@demo.darafin.local", password)
+        distributor_user = self._user(
+            "demo-distributor", "distributor@demo.darafin.local", password
+        )
+        pharmacy_user = self._user("demo-pharmacy", "pharmacy@demo.darafin.local", password)
         approver = self._user("demo-approver", "approver@demo.darafin.local", password)
         finance_user = self._user("demo-finance", "finance@demo.darafin.local", password)
 
@@ -46,6 +50,11 @@ class Command(BaseCommand):
             organization_type=Organization.Type.MANUFACTURER,
             national_id="14050000002",
         )
+        distributor = self._organization(
+            name="پخش دارویی آریا",
+            organization_type=Organization.Type.DISTRIBUTOR,
+            national_id="14050000004",
+        )
         buyer = self._organization(
             name="شبکه داروخانه سلامت",
             organization_type=Organization.Type.PHARMACY,
@@ -53,6 +62,8 @@ class Command(BaseCommand):
         )
 
         self._membership(maker, borrower, UserMembership.Role.OWNER)
+        self._membership(distributor_user, distributor, UserMembership.Role.OWNER)
+        self._membership(pharmacy_user, buyer, UserMembership.Role.OWNER)
         self._membership(approver, lender, UserMembership.Role.APPROVER)
         self._membership(finance_user, lender, UserMembership.Role.BANK_FINANCE)
 
@@ -61,11 +72,24 @@ class Command(BaseCommand):
             iban="IR140000000000000000000001",
             defaults={"is_active": True},
         )
+        distributor_account, _ = BankAccount.objects.get_or_create(
+            organization=distributor,
+            iban="IR140000000000000000000002",
+            defaults={"is_active": True},
+        )
         facility, _ = Facility.objects.get_or_create(
             lender=lender,
             borrower=borrower,
             defaults={
                 "limit": Decimal("5000000000.0000"),
+                "expiry": timezone.localdate() + timedelta(days=180),
+            },
+        )
+        distributor_facility, _ = Facility.objects.get_or_create(
+            lender=lender,
+            borrower=distributor,
+            defaults={
+                "limit": Decimal("2500000000.0000"),
                 "expiry": timezone.localdate() + timedelta(days=180),
             },
         )
@@ -99,8 +123,31 @@ class Command(BaseCommand):
                     finance_user=finance_user,
                 )
 
+        distributor_invoice, _ = Invoice.objects.get_or_create(
+            issuer=distributor,
+            number="DF-DEMO-DIST-001",
+            defaults={
+                "buyer": buyer,
+                "amount": Decimal("650000000.0000"),
+                "due_date": timezone.localdate() + timedelta(days=45),
+                "status": Invoice.Status.VERIFIED,
+                "created_by": distributor_user,
+            },
+        )
+        self._seed_request(
+            invoice=distributor_invoice,
+            target=FinancingRequest.Status.REQUESTED,
+            facility=distributor_facility,
+            bank_account=distributor_account,
+            maker=distributor_user,
+            approver=approver,
+            finance_user=finance_user,
+        )
+
         self.stdout.write(self.style.SUCCESS("Darafin demo data is ready."))
-        self.stdout.write("Users: demo-maker, demo-approver, demo-finance")
+        self.stdout.write(
+            "Users: demo-maker, demo-distributor, demo-pharmacy, demo-approver, demo-finance"
+        )
 
     def _user(self, username, email, password):
         user, _ = User.objects.get_or_create(username=username, defaults={"email": email})
