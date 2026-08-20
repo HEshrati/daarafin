@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
-  title: ''
-  version: 0.0.0
+  title: Darafin API
+  version: 1.0.0
 paths:
   /api/schema/:
     get:
@@ -434,6 +434,177 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Facility'
+          description: ''
+  /api/v1/financing/{id}:
+    get:
+      operationId: v1_financing_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinancingRequest'
+          description: ''
+  /api/v1/financing/{id}/approve:
+    post:
+      operationId: v1_financing_approve_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinancingRequest'
+          description: ''
+  /api/v1/financing/{id}/disburse:
+    post:
+      operationId: v1_financing_disburse_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Disburse'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Disburse'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Disburse'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinancingRequest'
+          description: ''
+  /api/v1/financing/{id}/reject:
+    post:
+      operationId: v1_financing_reject_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Reject'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Reject'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Reject'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinancingRequest'
+          description: ''
+  /api/v1/financing/quotes:
+    post:
+      operationId: v1_financing_quotes_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuoteCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/QuoteCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/QuoteCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Quote'
+          description: ''
+  /api/v1/financing/requests:
+    get:
+      operationId: v1_financing_requests_list
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FinancingRequest'
+          description: ''
+    post:
+      operationId: v1_financing_requests_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RequestCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RequestCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinancingRequest'
           description: ''
   /api/v1/invoices:
     get:
@@ -1197,6 +1368,14 @@ components:
         * `approved` - approved
         * `rejected` - rejected
         * `need_changes` - need_changes
+    Disburse:
+      type: object
+      properties:
+        bank_account_id:
+          type: integer
+          minimum: 1
+      required:
+      - bank_account_id
     Dispute:
       type: object
       properties:
@@ -1207,6 +1386,16 @@ components:
           type: integer
       required:
       - reason
+    EligibleBankAccount:
+      type: object
+      properties:
+        id:
+          type: integer
+        iban:
+          type: string
+      required:
+      - iban
+      - id
     Facility:
       type: object
       properties:
@@ -1240,6 +1429,107 @@ components:
       - lender
       - limit
       - utilized_amount
+    FinancingRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        quote:
+          allOf:
+          - $ref: '#/components/schemas/Quote'
+          readOnly: true
+        invoice:
+          type: integer
+          readOnly: true
+        borrower:
+          type: integer
+          readOnly: true
+        facility:
+          type: integer
+          readOnly: true
+          nullable: true
+        bank_account:
+          type: integer
+          readOnly: true
+          nullable: true
+        eligible_bank_accounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/EligibleBankAccount'
+          readOnly: true
+        allowed_actions:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        requested_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,20}(?:\.\d{0,4})?$
+          readOnly: true
+        term:
+          type: integer
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/FinancingRequestStatusEnum'
+          readOnly: true
+        rejection_reason:
+          type: string
+          readOnly: true
+        created_by:
+          type: integer
+          readOnly: true
+        approved_by:
+          type: integer
+          readOnly: true
+          nullable: true
+        history:
+          type: array
+          items:
+            $ref: '#/components/schemas/RequestHistory'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - allowed_actions
+      - approved_by
+      - bank_account
+      - borrower
+      - created_at
+      - created_by
+      - eligible_bank_accounts
+      - facility
+      - history
+      - id
+      - invoice
+      - quote
+      - rejection_reason
+      - requested_amount
+      - status
+      - term
+      - updated_at
+    FinancingRequestStatusEnum:
+      enum:
+      - quoted
+      - requested
+      - approved
+      - rejected
+      - disbursed
+      type: string
+      description: |-
+        * `quoted` - قیمت‌گذاری‌شده
+        * `requested` - درخواست‌شده
+        * `approved` - تأییدشده
+        * `rejected` - ردشده
+        * `disbursed` - پرداخت‌شده
     Invoice:
       type: object
       properties:
@@ -1297,6 +1587,18 @@ components:
         * `disputed` - اختلاف
         * `financed` - تأمین
         * `settled` - تسویه
+    KindEnum:
+      enum:
+      - principal
+      - financing_fee
+      - platform_fee
+      - net_amount
+      type: string
+      description: |-
+        * `principal` - اصل مبلغ
+        * `financing_fee` - هزینه تأمین مالی
+        * `platform_fee` - کارمزد پلتفرم
+        * `net_amount` - مبلغ خالص
     Me:
       type: object
       properties:
@@ -1364,8 +1666,9 @@ components:
           readOnly: true
         risk_tier:
           type: integer
-          maximum: 32767
+          maximum: 9223372036854775807
           minimum: 0
+          format: int64
       required:
       - id
       - name
@@ -1450,8 +1753,9 @@ components:
           readOnly: true
         risk_tier:
           type: integer
-          maximum: 32767
+          maximum: 9223372036854775807
           minimum: 0
+          format: int64
     Presign:
       type: object
       properties:
@@ -1475,6 +1779,155 @@ components:
       - filename
       - mime
       - size
+    Quote:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        request_id:
+          type: integer
+          readOnly: true
+        invoice_ids:
+          type: array
+          items:
+            type: integer
+          readOnly: true
+        policy_version:
+          type: integer
+          readOnly: true
+        principal:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,20}(?:\.\d{0,4})?$
+          readOnly: true
+        term_days:
+          type: integer
+          readOnly: true
+        financing_fee:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,20}(?:\.\d{0,4})?$
+          readOnly: true
+        platform_fee:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,20}(?:\.\d{0,4})?$
+          readOnly: true
+        net_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,20}(?:\.\d{0,4})?$
+          readOnly: true
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuoteLine'
+          readOnly: true
+        expires_at:
+          type: string
+          format: date-time
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - expires_at
+      - financing_fee
+      - id
+      - invoice_ids
+      - lines
+      - net_amount
+      - platform_fee
+      - policy_version
+      - principal
+      - request_id
+      - term_days
+    QuoteCreate:
+      type: object
+      properties:
+        invoice_ids:
+          type: array
+          items:
+            type: integer
+            minimum: 1
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,20}(?:\.\d{0,4})?$
+        term:
+          type: integer
+          maximum: 3650
+          minimum: 1
+      required:
+      - amount
+      - invoice_ids
+      - term
+    QuoteLine:
+      type: object
+      properties:
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/KindEnum'
+          readOnly: true
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,20}(?:\.\d{0,4})?$
+          readOnly: true
+      required:
+      - amount
+      - kind
+    Reject:
+      type: object
+      properties:
+        reason:
+          type: string
+          maxLength: 2000
+          minLength: 3
+      required:
+      - reason
+    RequestCreate:
+      type: object
+      properties:
+        quote_id:
+          type: integer
+          minimum: 1
+        facility_id:
+          type: integer
+          minimum: 1
+      required:
+      - facility_id
+      - quote_id
+    RequestHistory:
+      type: object
+      properties:
+        from_status:
+          allOf:
+          - $ref: '#/components/schemas/FinancingRequestStatusEnum'
+          readOnly: true
+        to_status:
+          allOf:
+          - $ref: '#/components/schemas/FinancingRequestStatusEnum'
+          readOnly: true
+        changed_by:
+          type: integer
+          readOnly: true
+        reason:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - changed_by
+      - created_at
+      - from_status
+      - reason
+      - to_status
     Reservation:
       type: object
       properties:

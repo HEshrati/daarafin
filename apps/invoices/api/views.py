@@ -40,7 +40,7 @@ class InvoiceListCreateView(generics.ListCreateAPIView):
     pagination_class = InvoicePagination
 
     def get_queryset(self):
-        qs = selectors.invoices_for_user(self.request.user)
+        qs = selectors.invoices_for_user(self.request.user).prefetch_related("lines")
         filters = InvoiceFilterSerializer(data=self.request.query_params)
         filters.is_valid(raise_exception=True)
         values = filters.validated_data
@@ -70,7 +70,7 @@ class InvoiceDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
-        return selectors.invoices_for_user(self.request.user)
+        return selectors.invoices_for_user(self.request.user).prefetch_related("lines")
 
     def perform_update(self, s):
         invoice = self.get_object()

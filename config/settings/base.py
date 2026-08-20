@@ -32,6 +32,8 @@ INSTALLED_APPS = [
     "apps.documents",
     "apps.invoices",
     "apps.facilities",
+    "apps.financing",
+    "apps.medicines",
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -88,6 +90,13 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "common.errors.exception_handler",
+}
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Darafin API",
+    "VERSION": "1.0.0",
+    "ENUM_NAME_OVERRIDES": {
+        "FinancingRequestStatusEnum": "apps.financing.models.FinancingRequest.Status",
+    },
 }
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=10),

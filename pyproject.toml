@@ -6,8 +6,9 @@ requires-python = ">=3.13"
 dependencies = [
   "boto3>=1.35", "celery>=5.4", "django>=5.1,<6", "django-filter>=24.3",
   "django-redis>=5.4", "djangorestframework>=3.15", "djangorestframework-simplejwt>=5.3",
-  "drf-spectacular>=0.27", "opentelemetry-sdk>=1.28", "psycopg[binary]>=3.2",
-  "python-magic>=0.4.27", "redis>=5.2", "sentry-sdk[django]>=2.18", "structlog>=24.4",
+  "drf-spectacular>=0.27", "odfpy>=1.4", "openpyxl>=3.1", "opentelemetry-sdk>=1.28",
+  "psycopg[binary]>=3.2", "python-magic>=0.4.27", "redis>=5.2", "sentry-sdk[django]>=2.18",
+  "structlog>=24.4",
 ]
 
 [dependency-groups]

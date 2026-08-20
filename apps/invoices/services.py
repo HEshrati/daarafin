@@ -1,19 +1,39 @@
+from decimal import Decimal
+
 from django.db import IntegrityError, transaction
 
 from apps.audit.services import record_event
 from common.errors import DomainError
 from common.idempotency import begin_idempotent_request, complete_idempotent_request
 
-from .models import Invoice, InvoiceDispute
+from .models import Invoice, InvoiceDispute, InvoiceLine
 
 FINAL_STATUSES = {Invoice.Status.FINANCED, Invoice.Status.SETTLED}
 
 
+def _replace_lines(*, invoice, lines):
+    InvoiceLine.objects.filter(invoice=invoice).delete()
+    for index, line in enumerate(lines or []):
+        InvoiceLine.objects.create(
+            invoice=invoice,
+            medicine=line.get("medicine"),
+            description=line.get("description", ""),
+            quantity=line["quantity"],
+            unit_price=line["unit_price"],
+            line_amount=line["line_amount"],
+            sort_order=line.get("sort_order", index),
+        )
+
+
 @transaction.atomic
 def create_invoice(*, actor, data, correlation_id=""):
+    payload = dict(data)
+    lines = payload.pop("lines", None)
     try:
         with transaction.atomic():
-            invoice = Invoice.objects.create(created_by=actor, **data)
+            invoice = Invoice.objects.create(created_by=actor, **payload)
+            if lines is not None:
+                _replace_lines(invoice=invoice, lines=lines)
     except IntegrityError as exc:
         raise DomainError(
             "duplicate_or_invalid_invoice",
@@ -41,16 +61,20 @@ def update_invoice(*, invoice, actor, data, expected_version, correlation_id="")
     if locked.status in FINAL_STATUSES:
         raise DomainError("immutable_invoice", "فاکتور تأمین/تسویه‌شده قابل ویرایش نیست.")
 
+    payload = dict(data)
+    lines = payload.pop("lines", None)
     before = {
         field: getattr(locked, field)
         for field in ("issuer_id", "buyer_id", "number", "amount", "due_date", "version")
     }
-    for key, value in data.items():
+    for key, value in payload.items():
         setattr(locked, key, value)
     locked.version += 1
     try:
         with transaction.atomic():
             locked.save()
+            if lines is not None:
+                _replace_lines(invoice=locked, lines=lines)
     except IntegrityError as exc:
         raise DomainError(
             "duplicate_or_invalid_invoice",
@@ -62,7 +86,7 @@ def update_invoice(*, invoice, actor, data, expected_version, correlation_id="")
         action="invoice.update",
         obj=locked,
         before=before,
-        after={**before, **data, "version": locked.version},
+        after={**before, **payload, "version": locked.version},
         correlation_id=correlation_id,
     )
     return locked
@@ -89,6 +113,14 @@ def submit_invoice(*, invoice, actor, correlation_id=""):
     locked = Invoice.objects.select_for_update().get(pk=invoice.pk)
     if locked.status != Invoice.Status.DRAFT:
         raise DomainError("invalid_invoice_status", "فقط فاکتور پیش‌نویس قابل ارسال است.")
+    lines = list(locked.lines.all())
+    if lines:
+        total = sum((line.line_amount for line in lines), Decimal("0"))
+        if abs(total - locked.amount) > Decimal("0.0001"):
+            raise DomainError(
+                "invoice_lines_mismatch",
+                "جمع خطوط فاکتور با مبلغ فاکتور یکسان نیست.",
+            )
     return _change_status(
         invoice=locked,
         actor=actor,
@@ -108,6 +140,20 @@ def verify_invoice(*, invoice, actor, correlation_id=""):
         actor=actor,
         target=Invoice.Status.VERIFIED,
         action="invoice.verify",
+        correlation_id=correlation_id,
+    )
+
+
+@transaction.atomic
+def mark_invoice_financed(*, invoice, actor, correlation_id=""):
+    locked = Invoice.objects.select_for_update().get(pk=invoice.pk)
+    if locked.status != Invoice.Status.VERIFIED:
+        raise DomainError("invalid_invoice_status", "فقط فاکتور تأییدشده قابل تأمین مالی است.")
+    return _change_status(
+        invoice=locked,
+        actor=actor,
+        target=Invoice.Status.FINANCED,
+        action="invoice.finance",
         correlation_id=correlation_id,
     )
 
