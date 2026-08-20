@@ -11,6 +11,7 @@ from common.errors import DomainError
 from common.permissions import ensure_active_scope
 
 from .serializers import (
+    DashboardSerializer,
     DisburseSerializer,
     FinancingRequestSerializer,
     QuoteCreateSerializer,
@@ -18,6 +19,15 @@ from .serializers import (
     RejectSerializer,
     RequestCreateSerializer,
 )
+
+
+class DashboardView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    @extend_schema(responses=DashboardSerializer)
+    def get(self, request):
+        payload = selectors.build_dashboard_for_user(request.user)
+        return Response(DashboardSerializer(payload).data)
 
 
 class QuoteCreateView(APIView):

@@ -2,6 +2,7 @@ from django.urls import path
 
 from .views import (
     ApproveView,
+    DashboardView,
     DisburseView,
     QuoteCreateView,
     RejectView,
@@ -10,6 +11,7 @@ from .views import (
 )
 
 urlpatterns = [
+    path("financing/dashboard", DashboardView.as_view()),
     path("financing/quotes", QuoteCreateView.as_view()),
     path("financing/requests", RequestListCreateView.as_view()),
     path("financing/<int:pk>", RequestDetailView.as_view()),

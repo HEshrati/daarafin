@@ -158,3 +158,45 @@ class RejectSerializer(serializers.Serializer):
 
 class DisburseSerializer(serializers.Serializer):
     bank_account_id = serializers.IntegerField(min_value=1)
+
+
+class DashboardPointSerializer(serializers.Serializer):
+    x = serializers.CharField()
+    y = serializers.FloatField()
+
+
+class DashboardSeriesSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    points = DashboardPointSerializer(many=True)
+
+
+class DashboardChartSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    type = serializers.ChoiceField(choices=("line", "bar", "donut"))
+    title = serializers.CharField()
+    series = DashboardSeriesSerializer(many=True)
+
+
+class DashboardKpiSerializer(serializers.Serializer):
+    key = serializers.CharField()
+    label = serializers.CharField()
+    value = serializers.CharField()
+    unit = serializers.ChoiceField(choices=("IRR", "count", "percent"))
+
+
+class DashboardTableColumnSerializer(serializers.Serializer):
+    key = serializers.CharField()
+    title = serializers.CharField()
+
+
+class DashboardTableSerializer(serializers.Serializer):
+    title = serializers.CharField()
+    columns = DashboardTableColumnSerializer(many=True)
+    rows = serializers.ListField(child=serializers.DictField())
+
+
+class DashboardSerializer(serializers.Serializer):
+    persona = serializers.CharField(allow_null=True)
+    kpis = DashboardKpiSerializer(many=True)
+    charts = DashboardChartSerializer(many=True)
+    table = DashboardTableSerializer()
