@@ -4,6 +4,7 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from apps.facilities.models import Facility, FacilityReservation
+from apps.organizations.models import Organization
 
 
 class FacilitySerializer(serializers.ModelSerializer):
@@ -27,6 +28,12 @@ class FacilitySerializer(serializers.ModelSerializer):
         borrower = attrs.get("borrower", getattr(self.instance, "borrower", None))
         if lender == borrower:
             raise serializers.ValidationError("اعتباردهنده و اعتبارگیرنده باید متفاوت باشند.")
+        if lender is not None and lender.type != Organization.Type.BANK:
+            raise serializers.ValidationError({"lender": "اعتباردهنده باید یک سازمان بانکی باشد."})
+        if borrower is not None and borrower.type == Organization.Type.BANK:
+            raise serializers.ValidationError(
+                {"borrower": "اعتبارگیرنده نمی‌تواند سازمان بانکی باشد."}
+            )
         if attrs.get("expiry") and attrs["expiry"] < timezone.localdate():
             raise serializers.ValidationError("تاریخ انقضای تسهیلات نمی‌تواند در گذشته باشد.")
         return attrs

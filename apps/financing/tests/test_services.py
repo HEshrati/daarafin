@@ -115,6 +115,26 @@ def test_only_verified_invoice_can_be_quoted():
     assert exc.value.get_codes()["code"] == "invoice_not_verified"
 
 
+def test_invoice_cannot_have_multiple_active_financing_requests():
+    maker, _, _, _, _, invoice, _, _ = make_context()
+    create_quote(
+        actor=maker,
+        invoice_ids=[invoice.pk],
+        amount=Decimal("500.0000"),
+        term_days=30,
+    )
+
+    with pytest.raises(DomainError) as exc:
+        create_quote(
+            actor=maker,
+            invoice_ids=[invoice.pk],
+            amount=Decimal("400.0000"),
+            term_days=30,
+        )
+
+    assert exc.value.get_codes()["code"] == "invoice_financing_in_progress"
+
+
 def test_happy_path_is_idempotent_and_updates_facility_and_invoice():
     maker, approver, finance_user, _, _, invoice, facility, bank_account = make_context()
     quote = create_quote(

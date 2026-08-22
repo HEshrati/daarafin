@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 
 from django.db import models
@@ -141,6 +141,13 @@ def _normalize_month(value) -> date:
     return date(value.year, value.month, 1)
 
 
+def _start_of_local_day(value: date) -> datetime:
+    return timezone.make_aware(
+        datetime.combine(value, time.min),
+        timezone.get_current_timezone(),
+    )
+
+
 def build_dashboard_for_user(user) -> dict:
     persona, membership = resolve_dashboard_persona(user)
     if persona is None or membership is None:
@@ -189,7 +196,8 @@ def _supplier_dashboard(*, membership, requests) -> dict:
     monthly = {
         _normalize_month(row["month"]): row["amount"] or Decimal("0")
         for row in org_requests.filter(
-            status=FinancingRequest.Status.DISBURSED, updated_at__gte=first_month
+            status=FinancingRequest.Status.DISBURSED,
+            updated_at__gte=_start_of_local_day(first_month),
         )
         .annotate(month=TruncMonth("updated_at"))
         .values("month")
@@ -275,7 +283,7 @@ def _distributor_dashboard(*, membership, requests) -> dict:
     first_month = month_starts[0]
     monthly = {
         _normalize_month(row["month"]): row["amount"] or Decimal("0")
-        for row in org_requests.filter(updated_at__gte=first_month)
+        for row in org_requests.filter(updated_at__gte=_start_of_local_day(first_month))
         .annotate(month=TruncMonth("updated_at"))
         .values("month")
         .annotate(amount=Sum("requested_amount"))
@@ -453,15 +461,17 @@ def _approver_dashboard(*, membership, requests) -> dict:
     queue_amount = queue.aggregate(total=Sum("requested_amount"))["total"] or Decimal("0")
     today = timezone.localdate()
     tomorrow = today + timedelta(days=1)
+    today_start = _start_of_local_day(today)
+    tomorrow_start = _start_of_local_day(tomorrow)
     approved_today = bank_requests.filter(
         status=FinancingRequest.Status.APPROVED,
-        updated_at__gte=today,
-        updated_at__lt=tomorrow,
+        updated_at__gte=today_start,
+        updated_at__lt=tomorrow_start,
     ).count()
     rejected_today = bank_requests.filter(
         status=FinancingRequest.Status.REJECTED,
-        updated_at__gte=today,
-        updated_at__lt=tomorrow,
+        updated_at__gte=today_start,
+        updated_at__lt=tomorrow_start,
     ).count()
 
     since = today - timedelta(days=6)
@@ -563,10 +573,12 @@ def _finance_dashboard(*, membership, requests) -> dict:
     approved_amount = approved_qs.aggregate(total=Sum("requested_amount"))["total"] or Decimal("0")
     today = timezone.localdate()
     tomorrow = today + timedelta(days=1)
+    today_start = _start_of_local_day(today)
+    tomorrow_start = _start_of_local_day(tomorrow)
     disbursed_today = bank_requests.filter(
         status=FinancingRequest.Status.DISBURSED,
-        updated_at__gte=today,
-        updated_at__lt=tomorrow,
+        updated_at__gte=today_start,
+        updated_at__lt=tomorrow_start,
     ).aggregate(total=Sum("requested_amount"))["total"] or Decimal("0")
 
     facilities = list(Facility.objects.filter(lender_id=org.id).select_related("borrower"))
@@ -586,7 +598,8 @@ def _finance_dashboard(*, membership, requests) -> dict:
         ): row["amount"]
         or Decimal("0")
         for row in bank_requests.filter(
-            status=FinancingRequest.Status.DISBURSED, updated_at__gte=first_month
+            status=FinancingRequest.Status.DISBURSED,
+            updated_at__gte=_start_of_local_day(first_month),
         )
         .annotate(month=TruncMonth("updated_at"))
         .values("month")

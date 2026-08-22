@@ -74,6 +74,20 @@ def create_quote(*, actor, invoice_ids, amount, term_days, correlation_id=""):
         raise DomainError("invoice_not_found", "یک یا چند فاکتور پیدا نشد.", status_code=404)
     if any(invoice.status != Invoice.Status.VERIFIED for invoice in invoices):
         raise DomainError("invoice_not_verified", "فقط فاکتور تأییدشده قابل قیمت‌گذاری است.")
+    active_request_exists = FinancingRequest.objects.filter(
+        quote__invoices__in=invoices,
+        status__in=(
+            FinancingRequest.Status.QUOTED,
+            FinancingRequest.Status.REQUESTED,
+            FinancingRequest.Status.APPROVED,
+        ),
+    ).exists()
+    if active_request_exists:
+        raise DomainError(
+            "invoice_financing_in_progress",
+            "برای یک یا چند فاکتور، درخواست تأمین مالی فعال وجود دارد.",
+            status_code=409,
+        )
     issuer_ids = {invoice.issuer_id for invoice in invoices}
     if len(issuer_ids) != 1:
         raise DomainError("mixed_invoice_issuers", "همه فاکتورها باید متعلق به یک صادرکننده باشند.")

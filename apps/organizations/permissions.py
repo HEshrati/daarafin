@@ -9,6 +9,8 @@ def object_organization_id(obj):
 
 class OrganizationScopedPermission(BasePermission):
     def has_object_permission(self, request, view, obj):
+        if request.user.is_staff:
+            return True
         membership = active_membership(
             user=request.user, organization_id=object_organization_id(obj)
         )

@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -6,12 +7,16 @@ from apps.medicines.models import Medicine, MedicineInsurancePrice
 from apps.organizations.models import DistributorBranch, Organization, PharmacyProfile
 from apps.organizations.selectors import organizations_for_user
 
+from .serializers import MasterDataSummarySerializer
+
 
 class MasterDataSummaryView(APIView):
     """خلاصه شمارشی مستر دیتا برای داشبورد/گزارش."""
 
     permission_classes = (IsAuthenticated,)
+    serializer_class = MasterDataSummarySerializer
 
+    @extend_schema(responses=MasterDataSummarySerializer)
     def get(self, request):
         orgs = organizations_for_user(request.user)
         return Response(

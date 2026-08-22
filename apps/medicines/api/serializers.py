@@ -43,3 +43,19 @@ class MedicineInsurancePriceSerializer(serializers.ModelSerializer):
             "last_update_date",
             "created_at",
         )
+
+
+class MedicineImportSerializer(serializers.Serializer):
+    organization_id = serializers.IntegerField(min_value=1, required=False)
+    file = serializers.FileField()
+
+
+class MedicineImportErrorSerializer(serializers.Serializer):
+    row = serializers.IntegerField()
+    message = serializers.CharField()
+
+
+class MedicineImportResultSerializer(serializers.Serializer):
+    created = serializers.IntegerField(min_value=0)
+    updated = serializers.IntegerField(min_value=0)
+    errors = MedicineImportErrorSerializer(many=True)

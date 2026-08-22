@@ -3,11 +3,12 @@ from decimal import Decimal
 
 import pytest
 from django.db import IntegrityError
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.test import APIClient
 
 from apps.identity.tests.factories import UserFactory
 from apps.invoices.models import Invoice
-from apps.invoices.services import submit_invoice, update_invoice, verify_invoice
+from apps.invoices.services import delete_invoice, submit_invoice, update_invoice, verify_invoice
 from apps.organizations.models import Organization, UserMembership
 from common.errors import DomainError
 
@@ -60,6 +61,7 @@ def test_optimistic_conflict():
 
 def test_status_change_increments_optimistic_version():
     user, issuer, buyer = invoice_data()
+    verifier = UserFactory()
     invoice = Invoice.objects.create(
         issuer=issuer,
         buyer=buyer,
@@ -70,10 +72,52 @@ def test_status_change_increments_optimistic_version():
     )
 
     invoice = submit_invoice(invoice=invoice, actor=user)
-    invoice = verify_invoice(invoice=invoice, actor=user)
+    invoice = verify_invoice(invoice=invoice, actor=verifier)
 
     assert invoice.status == Invoice.Status.VERIFIED
     assert invoice.version == 3
+
+
+def test_invoice_creator_cannot_verify_own_invoice():
+    user, issuer, buyer = invoice_data()
+    invoice = Invoice.objects.create(
+        issuer=issuer,
+        buyer=buyer,
+        number="maker-checker-1",
+        amount=Decimal("10"),
+        due_date=date.today(),
+        status=Invoice.Status.SUBMITTED,
+        created_by=user,
+    )
+
+    with pytest.raises(PermissionDenied):
+        verify_invoice(invoice=invoice, actor=user)
+
+
+def test_only_draft_invoice_can_be_updated_or_deleted():
+    user, issuer, buyer = invoice_data()
+    invoice = Invoice.objects.create(
+        issuer=issuer,
+        buyer=buyer,
+        number="immutable-verified-1",
+        amount=Decimal("10"),
+        due_date=date.today(),
+        status=Invoice.Status.VERIFIED,
+        created_by=user,
+    )
+
+    with pytest.raises(DomainError) as update_error:
+        update_invoice(
+            invoice=invoice,
+            actor=user,
+            data={"amount": Decimal("11")},
+            expected_version=1,
+        )
+    with pytest.raises(DomainError) as delete_error:
+        delete_invoice(invoice=invoice, actor=user)
+
+    assert update_error.value.get_codes()["code"] == "immutable_invoice"
+    assert delete_error.value.get_codes()["code"] == "immutable_invoice"
 
 
 def test_buyer_cannot_update_issuer_invoice():

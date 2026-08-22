@@ -1,6 +1,26 @@
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from apps.organizations.models import UserMembership
+
+
+def request_organization_id(request) -> int | None:
+    """Read and validate the organization context from form data or a JWT claim."""
+    raw_value = request.data.get("organization_id") or (
+        request.auth.get("organization_id")
+        if request.auth and hasattr(request.auth, "get")
+        else None
+    )
+    if raw_value in (None, ""):
+        return None
+    if isinstance(raw_value, bool):
+        raise ValidationError({"organization_id": "شناسه سازمان باید یک عدد مثبت باشد."})
+    try:
+        organization_id = int(raw_value)
+    except (TypeError, ValueError) as exc:
+        raise ValidationError({"organization_id": "شناسه سازمان باید یک عدد مثبت باشد."}) from exc
+    if organization_id < 1:
+        raise ValidationError({"organization_id": "شناسه سازمان باید یک عدد مثبت باشد."})
+    return organization_id
 
 
 def ensure_maker_checker(*, actor, maker) -> None:

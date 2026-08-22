@@ -4,7 +4,7 @@ from decimal import Decimal
 import pytest
 
 from apps.facilities.models import Facility
-from apps.facilities.services import reserve_facility
+from apps.facilities.services import create_facility, reserve_facility
 from apps.identity.tests.factories import UserFactory
 from apps.organizations.models import Organization
 from common.errors import DomainError
@@ -65,3 +65,29 @@ def test_expired_facility_cannot_be_reserved():
             key="expired",
             actor=UserFactory(),
         )
+
+
+def test_facility_lender_must_be_a_bank():
+    lender = Organization.objects.create(
+        name="تولیدکننده اعتباردهنده",
+        type=Organization.Type.MANUFACTURER,
+        national_id="55555555551",
+    )
+    borrower = Organization.objects.create(
+        name="تولیدکننده اعتبارگیرنده",
+        type=Organization.Type.MANUFACTURER,
+        national_id="55555555552",
+    )
+
+    with pytest.raises(DomainError) as exc:
+        create_facility(
+            actor=UserFactory(),
+            data={
+                "lender": lender,
+                "borrower": borrower,
+                "limit": Decimal("100"),
+                "expiry": date.today() + timedelta(days=30),
+            },
+        )
+
+    assert exc.value.get_codes()["code"] == "invalid_facility_lender"

@@ -4,6 +4,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.audit.services import record_event
+from apps.organizations.models import Organization
 from common.errors import DomainError
 from common.idempotency import begin_idempotent_request, complete_idempotent_request
 
@@ -12,6 +13,12 @@ from .models import Facility, FacilityReservation
 
 @transaction.atomic
 def create_facility(*, actor, data, correlation_id=""):
+    lender = data["lender"]
+    borrower = data["borrower"]
+    if lender.type != Organization.Type.BANK:
+        raise DomainError("invalid_facility_lender", "اعتباردهنده باید یک سازمان بانکی باشد.")
+    if borrower.type == Organization.Type.BANK:
+        raise DomainError("invalid_facility_borrower", "اعتبارگیرنده نمی‌تواند سازمان بانکی باشد.")
     facility = Facility.objects.create(**data)
     record_event(
         actor=actor,

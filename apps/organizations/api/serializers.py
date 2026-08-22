@@ -85,3 +85,34 @@ class DistributorBranchSerializer(serializers.ModelSerializer):
             "address",
         )
         read_only_fields = ("id",)
+
+
+class MasterDataImportSerializer(serializers.Serializer):
+    organization_id = serializers.IntegerField(min_value=1, required=False)
+    file = serializers.FileField()
+
+
+class ImportErrorSerializer(serializers.Serializer):
+    row = serializers.IntegerField()
+    message = serializers.CharField()
+
+
+class ImportResultSerializer(serializers.Serializer):
+    created = serializers.IntegerField(min_value=0)
+    updated = serializers.IntegerField(min_value=0)
+    errors = ImportErrorSerializer(many=True)
+
+
+class OrganizationTypeCountsSerializer(serializers.Serializer):
+    total = serializers.IntegerField(min_value=0)
+    manufacturers = serializers.IntegerField(min_value=0)
+    distributors = serializers.IntegerField(min_value=0)
+    pharmacies = serializers.IntegerField(min_value=0)
+
+
+class MasterDataSummarySerializer(serializers.Serializer):
+    organizations = OrganizationTypeCountsSerializer()
+    pharmacy_profiles = serializers.IntegerField(min_value=0)
+    distributor_branches = serializers.IntegerField(min_value=0)
+    medicines = serializers.IntegerField(min_value=0)
+    insurance_prices = serializers.IntegerField(min_value=0)

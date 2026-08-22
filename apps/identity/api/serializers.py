@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from apps.identity.models import User
@@ -10,7 +11,7 @@ class MembershipOrganizationSerializer(serializers.Serializer):
     type = serializers.CharField()
 
 
-class MembershipSerializer(serializers.ModelSerializer):
+class UserMembershipSummarySerializer(serializers.ModelSerializer):
     organization = MembershipOrganizationSerializer(read_only=True)
 
     class Meta:
@@ -25,13 +26,14 @@ class MeSerializer(serializers.ModelSerializer):
         model = User
         fields = ("id", "username", "email", "mobile", "is_mfa_enabled", "memberships")
 
-    def get_memberships(self, user):
+    @extend_schema_field(UserMembershipSummarySerializer(many=True))
+    def get_memberships(self, user) -> list[dict]:
         memberships = (
             UserMembership.objects.filter(user=user, is_active=True)
             .select_related("organization")
             .order_by("id")
         )
-        return MembershipSerializer(memberships, many=True).data
+        return UserMembershipSummarySerializer(memberships, many=True).data
 
 
 class SessionSerializer(serializers.Serializer):

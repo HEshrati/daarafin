@@ -55,6 +55,15 @@ def test_inactive_membership_denies_access():
     )
 
 
+def test_staff_bypasses_organization_membership_permission():
+    user = UserFactory(is_staff=True)
+    organization = org()
+
+    assert OrganizationScopedPermission().has_object_permission(
+        request(user), SimpleNamespace(required_scope="manage_organization"), organization
+    )
+
+
 def test_maker_cannot_approve_own_record():
     user = UserFactory()
     with pytest.raises(PermissionDenied):
@@ -87,3 +96,17 @@ def test_authenticated_user_can_list_only_active_insurance_directory_entries():
 
     assert response.status_code == 200
     assert [row["name"] for row in response.data] == ["بیمه فعال"]
+
+
+def test_master_data_import_rejects_invalid_organization_id():
+    client = APIClient()
+    client.force_authenticate(UserFactory())
+
+    response = client.post(
+        "/api/v1/masterdata/import/suppliers",
+        {"organization_id": "invalid"},
+        format="multipart",
+    )
+
+    assert response.status_code == 400
+    assert "organization_id" in response.data["errors"]

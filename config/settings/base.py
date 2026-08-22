@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "rest_framework_simplejwt.token_blacklist",
     "django_filters",
     "drf_spectacular",
     "apps.identity",
@@ -37,6 +38,7 @@ INSTALLED_APPS = [
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -90,12 +92,18 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "common.errors.exception_handler",
+    "DEFAULT_THROTTLE_RATES": {
+        "auth_token": "10/minute",
+        "auth_refresh": "30/minute",
+    },
 }
 SPECTACULAR_SETTINGS = {
     "TITLE": "Darafin API",
     "VERSION": "1.0.0",
     "ENUM_NAME_OVERRIDES": {
         "FinancingRequestStatusEnum": "apps.financing.models.FinancingRequest.Status",
+        "MembershipRoleEnum": "apps.organizations.models.UserMembership.Role",
+        "OrganizationContactRoleEnum": "apps.organizations.models.OrganizationContact.Role",
     },
 }
 SIMPLE_JWT = {
@@ -109,6 +117,7 @@ TIME_ZONE = "Asia/Tehran"
 USE_I18N = True
 USE_TZ = True
 STATIC_URL = "static/"
+X_FRAME_OPTIONS = "DENY"
 
 from config.observability import configure_observability  # noqa: E402
 

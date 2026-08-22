@@ -30,6 +30,7 @@ def test_refresh_token_returns_new_access_token():
     ).data
     response = client.post(reverse("token-refresh"), {"refresh": tokens["refresh"]})
     assert response.status_code == 200 and "access" in response.data
+    assert client.post(reverse("token-refresh"), {"refresh": tokens["refresh"]}).status_code == 401
 
 
 def test_invalid_password_is_rejected():

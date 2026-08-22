@@ -5,10 +5,11 @@ from django.db import IntegrityError, transaction
 from apps.audit.services import record_event
 from common.errors import DomainError
 from common.idempotency import begin_idempotent_request, complete_idempotent_request
+from common.permissions import ensure_maker_checker
 
 from .models import Invoice, InvoiceDispute, InvoiceLine
 
-FINAL_STATUSES = {Invoice.Status.FINANCED, Invoice.Status.SETTLED}
+EDITABLE_STATUSES = {Invoice.Status.DRAFT}
 
 
 def _replace_lines(*, invoice, lines):
@@ -58,8 +59,8 @@ def update_invoice(*, invoice, actor, data, expected_version, correlation_id="")
         raise DomainError(
             "version_conflict", "رکورد توسط کاربر دیگری تغییر کرده است.", status_code=409
         )
-    if locked.status in FINAL_STATUSES:
-        raise DomainError("immutable_invoice", "فاکتور تأمین/تسویه‌شده قابل ویرایش نیست.")
+    if locked.status not in EDITABLE_STATUSES:
+        raise DomainError("immutable_invoice", "فقط فاکتور پیش‌نویس قابل ویرایش است.")
 
     payload = dict(data)
     lines = payload.pop("lines", None)
@@ -95,8 +96,8 @@ def update_invoice(*, invoice, actor, data, expected_version, correlation_id="")
 @transaction.atomic
 def delete_invoice(*, invoice, actor, correlation_id=""):
     locked = Invoice.objects.select_for_update().get(pk=invoice.pk)
-    if locked.status in FINAL_STATUSES:
-        raise DomainError("immutable_invoice", "فاکتور تأمین/تسویه‌شده قابل حذف نیست.")
+    if locked.status not in EDITABLE_STATUSES:
+        raise DomainError("immutable_invoice", "فقط فاکتور پیش‌نویس قابل حذف است.")
     record_event(
         actor=actor,
         action="invoice.delete",
@@ -135,6 +136,7 @@ def verify_invoice(*, invoice, actor, correlation_id=""):
     locked = Invoice.objects.select_for_update().get(pk=invoice.pk)
     if locked.status != Invoice.Status.SUBMITTED:
         raise DomainError("invalid_invoice_status", "فقط فاکتور ارسال‌شده قابل تأیید است.")
+    ensure_maker_checker(actor=actor, maker=locked.created_by)
     return _change_status(
         invoice=locked,
         actor=actor,

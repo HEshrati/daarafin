@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework import generics, status
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
@@ -6,9 +7,14 @@ from rest_framework.views import APIView
 
 from apps.medicines import selectors, services
 from apps.medicines.models import Medicine
-from common.permissions import ensure_active_scope
+from common.permissions import ensure_active_scope, request_organization_id
 
-from .serializers import MedicineInsurancePriceSerializer, MedicineSerializer
+from .serializers import (
+    MedicineImportResultSerializer,
+    MedicineImportSerializer,
+    MedicineInsurancePriceSerializer,
+    MedicineSerializer,
+)
 
 
 class MedicineListView(generics.ListAPIView):
@@ -37,13 +43,11 @@ class MedicinePriceListView(generics.ListAPIView):
 class MedicineImportView(APIView):
     permission_classes = (IsAuthenticated,)
     parser_classes = (MultiPartParser, FormParser)
+    serializer_class = MedicineImportSerializer
 
+    @extend_schema(request=MedicineImportSerializer, responses=MedicineImportResultSerializer)
     def post(self, request):
-        organization_id = request.data.get("organization_id") or (
-            request.auth.get("organization_id")
-            if request.auth and hasattr(request.auth, "get")
-            else None
-        )
+        organization_id = request_organization_id(request)
         if not request.user.is_staff:
             if not organization_id:
                 return Response(
@@ -55,7 +59,7 @@ class MedicineImportView(APIView):
                 )
             ensure_active_scope(
                 user=request.user,
-                organization_id=int(organization_id),
+                organization_id=organization_id,
                 scope="manage_medicines",
             )
         upload = request.FILES.get("file")
@@ -70,13 +74,11 @@ class MedicineImportView(APIView):
 class InsurancePriceImportView(APIView):
     permission_classes = (IsAuthenticated,)
     parser_classes = (MultiPartParser, FormParser)
+    serializer_class = MedicineImportSerializer
 
+    @extend_schema(request=MedicineImportSerializer, responses=MedicineImportResultSerializer)
     def post(self, request):
-        organization_id = request.data.get("organization_id") or (
-            request.auth.get("organization_id")
-            if request.auth and hasattr(request.auth, "get")
-            else None
-        )
+        organization_id = request_organization_id(request)
         if not request.user.is_staff:
             if not organization_id:
                 return Response(
@@ -88,7 +90,7 @@ class InsurancePriceImportView(APIView):
                 )
             ensure_active_scope(
                 user=request.user,
-                organization_id=int(organization_id),
+                organization_id=organization_id,
                 scope="manage_medicines",
             )
         upload = request.FILES.get("file")

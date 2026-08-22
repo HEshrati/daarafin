@@ -126,10 +126,8 @@ def test_medicine_upsert_and_import():
 def test_invoice_lines_amount_validation():
     from datetime import date
 
-    from apps.identity.tests.factories import UserFactory
     from apps.invoices.api.serializers import InvoiceSerializer
 
-    user = UserFactory()
     issuer = Organization.objects.create(name="الف", type="manufacturer", national_id="11111111111")
     buyer = Organization.objects.create(name="ب", type="pharmacy", national_id="22222222222")
     medicine = Medicine.objects.create(external_id="1", name="Drug")

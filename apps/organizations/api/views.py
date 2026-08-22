@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework import generics, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.parsers import FormParser, MultiPartParser
@@ -13,11 +14,13 @@ from apps.organizations.models import (
     UserMembership,
 )
 from apps.organizations.permissions import OrganizationScopedPermission
-from common.permissions import ensure_active_scope
+from common.permissions import ensure_active_scope, request_organization_id
 
 from .serializers import (
     BankAccountSerializer,
     DistributorBranchSerializer,
+    ImportResultSerializer,
+    MasterDataImportSerializer,
     MembershipSerializer,
     OrganizationContactSerializer,
     OrganizationSerializer,
@@ -147,6 +150,7 @@ class BranchListCreateView(generics.ListCreateAPIView):
 class MasterDataImportView(APIView):
     permission_classes = (IsAuthenticated,)
     parser_classes = (MultiPartParser, FormParser)
+    serializer_class = MasterDataImportSerializer
 
     kind_importers = {
         "suppliers": services.import_suppliers_xlsx,
@@ -154,6 +158,7 @@ class MasterDataImportView(APIView):
         "distributors": services.import_distributors_xlsx,
     }
 
+    @extend_schema(request=MasterDataImportSerializer, responses=ImportResultSerializer)
     def post(self, request, kind):
         importer = self.kind_importers.get(kind)
         if importer is None:
@@ -161,11 +166,7 @@ class MasterDataImportView(APIView):
                 {"code": "unknown_import_kind", "message": "نوع ایمپورت نامعتبر است."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        organization_id = request.data.get("organization_id") or (
-            request.auth.get("organization_id")
-            if request.auth and hasattr(request.auth, "get")
-            else None
-        )
+        organization_id = request_organization_id(request)
         if not organization_id and not request.user.is_staff:
             return Response(
                 {
@@ -177,7 +178,7 @@ class MasterDataImportView(APIView):
         if not request.user.is_staff:
             ensure_active_scope(
                 user=request.user,
-                organization_id=int(organization_id),
+                organization_id=organization_id,
                 scope="import_master_data",
             )
         upload = request.FILES.get("file")
