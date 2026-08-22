@@ -2,6 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.test import APIClient
 
 from apps.identity.tests.factories import UserFactory
 from apps.organizations.models import Organization, UserMembership
@@ -58,3 +59,31 @@ def test_maker_cannot_approve_own_record():
     user = UserFactory()
     with pytest.raises(PermissionDenied):
         ensure_maker_checker(actor=user, maker=user)
+
+
+def test_authenticated_user_can_list_only_active_insurance_directory_entries():
+    user = UserFactory()
+    Organization.objects.create(
+        name="بیمه فعال",
+        type=Organization.Type.INSURANCE,
+        national_id="14000000001",
+    )
+    Organization.objects.create(
+        name="بیمه غیرفعال",
+        type=Organization.Type.INSURANCE,
+        national_id="14000000002",
+        status=Organization.Status.SUSPENDED,
+    )
+    Organization.objects.create(
+        name="تولیدکننده",
+        type=Organization.Type.MANUFACTURER,
+        national_id="14000000003",
+    )
+
+    client = APIClient()
+    client.force_authenticate(user)
+
+    response = client.get("/api/v1/organizations", {"type": "insurance"})
+
+    assert response.status_code == 200
+    assert [row["name"] for row in response.data] == ["بیمه فعال"]

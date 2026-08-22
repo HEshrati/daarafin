@@ -6,7 +6,12 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.organizations import selectors, services
-from apps.organizations.models import BankAccount, DistributorBranch, OrganizationContact, UserMembership
+from apps.organizations.models import (
+    BankAccount,
+    DistributorBranch,
+    OrganizationContact,
+    UserMembership,
+)
 from apps.organizations.permissions import OrganizationScopedPermission
 from common.permissions import ensure_active_scope
 
@@ -24,8 +29,11 @@ class OrganizationListCreateView(generics.ListCreateAPIView):
     permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
-        qs = selectors.organizations_for_user(self.request.user)
         org_type = self.request.query_params.get("type")
+        qs = selectors.organizations_for_directory(
+            self.request.user,
+            organization_type=org_type,
+        )
         province = self.request.query_params.get("province")
         gln = self.request.query_params.get("gln")
         if org_type:
@@ -34,7 +42,7 @@ class OrganizationListCreateView(generics.ListCreateAPIView):
             qs = qs.filter(province=province)
         if gln:
             qs = qs.filter(gln=gln)
-        return qs
+        return qs.order_by("name", "pk")
 
     def perform_create(self, serializer):
         serializer.instance = services.create_organization(
@@ -160,7 +168,10 @@ class MasterDataImportView(APIView):
         )
         if not organization_id and not request.user.is_staff:
             return Response(
-                {"code": "organization_required", "message": "شناسه سازمان برای بررسی دسترسی لازم است."},
+                {
+                    "code": "organization_required",
+                    "message": "شناسه سازمان برای بررسی دسترسی لازم است.",
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
         if not request.user.is_staff:

@@ -60,6 +60,48 @@ class Command(BaseCommand):
             organization_type=Organization.Type.PHARMACY,
             national_id="14050000003",
         )
+        insurers = [
+            self._organization(
+                name="سازمان تأمین اجتماعی",
+                organization_type=Organization.Type.INSURANCE,
+                national_id="14050000101",
+                province="تهران",
+                city="تهران",
+                phone="021-64501",
+                email="demo-tamin@darafin.local",
+                risk_tier=1,
+            ),
+            self._organization(
+                name="سازمان بیمه سلامت ایران",
+                organization_type=Organization.Type.INSURANCE,
+                national_id="14050000102",
+                province="تهران",
+                city="تهران",
+                phone="021-1666",
+                email="demo-salamat@darafin.local",
+                risk_tier=1,
+            ),
+            self._organization(
+                name="بیمه خدمات درمانی نیروهای مسلح",
+                organization_type=Organization.Type.INSURANCE,
+                national_id="14050000103",
+                province="تهران",
+                city="تهران",
+                phone="021-81261",
+                email="demo-sakhad@darafin.local",
+                risk_tier=2,
+            ),
+            self._organization(
+                name="بیمه دانا",
+                organization_type=Organization.Type.INSURANCE,
+                national_id="14050000104",
+                province="تهران",
+                city="تهران",
+                phone="021-8304",
+                email="demo-dana@darafin.local",
+                risk_tier=2,
+            ),
+        ]
 
         self._membership(maker, borrower, UserMembership.Role.OWNER)
         self._membership(distributor_user, distributor, UserMembership.Role.OWNER)
@@ -144,6 +186,101 @@ class Command(BaseCommand):
             finance_user=finance_user,
         )
 
+        display_invoice_specs = [
+            (
+                borrower,
+                insurers[0],
+                maker,
+                "DF-DEMO-101",
+                "185000000.0000",
+                12,
+                Invoice.Status.DRAFT,
+            ),
+            (
+                borrower,
+                insurers[1],
+                maker,
+                "DF-DEMO-102",
+                "420000000.0000",
+                20,
+                Invoice.Status.SUBMITTED,
+            ),
+            (
+                borrower,
+                insurers[2],
+                maker,
+                "DF-DEMO-103",
+                "730000000.0000",
+                35,
+                Invoice.Status.VERIFIED,
+            ),
+            (
+                borrower,
+                insurers[3],
+                maker,
+                "DF-DEMO-104",
+                "265000000.0000",
+                48,
+                Invoice.Status.DISPUTED,
+            ),
+            (
+                borrower,
+                buyer,
+                maker,
+                "DF-DEMO-105",
+                "980000000.0000",
+                60,
+                Invoice.Status.FINANCED,
+            ),
+            (
+                distributor,
+                buyer,
+                distributor_user,
+                "DF-DEMO-DIST-102",
+                "315000000.0000",
+                25,
+                Invoice.Status.SUBMITTED,
+            ),
+            (
+                distributor,
+                insurers[0],
+                distributor_user,
+                "DF-DEMO-DIST-103",
+                "540000000.0000",
+                40,
+                Invoice.Status.VERIFIED,
+            ),
+            (
+                distributor,
+                insurers[1],
+                distributor_user,
+                "DF-DEMO-DIST-104",
+                "225000000.0000",
+                55,
+                Invoice.Status.DISPUTED,
+            ),
+        ]
+        for (
+            issuer,
+            invoice_buyer,
+            creator,
+            number,
+            amount,
+            due_in_days,
+            invoice_status,
+        ) in display_invoice_specs:
+            Invoice.objects.get_or_create(
+                issuer=issuer,
+                number=number,
+                defaults={
+                    "buyer": invoice_buyer,
+                    "amount": Decimal(amount),
+                    "due_date": timezone.localdate() + timedelta(days=due_in_days),
+                    "status": invoice_status,
+                    "created_by": creator,
+                },
+            )
+
         self.stdout.write(self.style.SUCCESS("Darafin demo data is ready."))
         self.stdout.write(
             "Users: demo-maker, demo-distributor, demo-pharmacy, demo-approver, demo-finance"
@@ -156,10 +293,10 @@ class Command(BaseCommand):
         user.save(update_fields=("email", "password"))
         return user
 
-    def _organization(self, *, name, organization_type, national_id):
-        organization, _ = Organization.objects.get_or_create(
+    def _organization(self, *, name, organization_type, national_id, **profile):
+        organization, _ = Organization.objects.update_or_create(
             national_id=national_id,
-            defaults={"name": name, "type": organization_type},
+            defaults={"name": name, "type": organization_type, **profile},
         )
         return organization
 
